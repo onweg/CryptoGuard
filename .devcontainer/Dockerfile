@@ -5,7 +5,7 @@ RUN apt clean
 RUN apt update
 
 # Install common tools
-RUN apt install -y python3-minimal python3-pip pipx git less vim sudo cmake make g++-15 clang-format clangd-20
+RUN apt install -y python3-minimal python3-pip pipx git less vim sudo cmake make gcc-11 g++-11 clang-format clangd-20
 
 # Install additional tools and libraries
 RUN apt install -y libjemalloc-dev
@@ -18,8 +18,8 @@ RUN apt autoremove -y \
     && rm -rf /tmp/*
 
 # Update  gcc/g++ version to the latest ones
-RUN ln -fs /usr/bin/g++-15 /usr/bin/g++
-RUN ln -fs /usr/bin/gcc-15 /usr/bin/gcc
+RUN ln -fs /usr/bin/g++-11 /usr/bin/g++
+RUN ln -fs /usr/bin/gcc-11 /usr/bin/gcc
 
 ARG USERNAME=dev
 ARG USER_UID
@@ -40,18 +40,41 @@ RUN set -e; \
     fi;
 
 # Create a non-root user 'dev' with host UID/GID
+# RUN set -e; \
+#     echo "Create group $USERNAME with GID=$USER_GID"; \
+#     groupadd --gid $USER_GID $USERNAME; \
+#     \
+#     echo "Create user $USERNAME with UID=$USER_UID and GID=$USER_GID"; \
+#     useradd -ms /bin/bash --uid $USER_UID --gid $USER_GID $USERNAME; \
+#     \
+#     # Configure NOPASSWD option
+#     echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USERNAME; \
+#     chmod 0440 /etc/sudoers.d/$USERNAME; \
+#     \
+#     echo "User $USERNAME with UID=$USER_UID and GID=$USER_GID was successfully created"
+# Create a non-root user 'dev' with host UID/GID
 RUN set -e; \
-    echo "Create group $USERNAME with GID=$USER_GID"; \
-    groupadd --gid $USER_GID $USERNAME; \
+    echo "Configuring group with GID=$USER_GID"; \
+    if getent group $USER_GID >/dev/null 2>&1; then \
+        echo "Group with GID $USER_GID already exists, skipping groupadd."; \
+    else \
+        echo "Create group $USERNAME with GID=$USER_GID"; \
+        groupadd --gid $USER_GID $USERNAME; \
+    fi; \
     \
     echo "Create user $USERNAME with UID=$USER_UID and GID=$USER_GID"; \
-    useradd -ms /bin/bash --uid $USER_UID --gid $USER_GID $USERNAME; \
+    if getent passwd $USER_UID >/dev/null 2>&1; then \
+        echo "User with UID $USER_UID already exists, skipping useradd."; \
+    else \
+        useradd -ms /bin/bash --uid $USER_UID --gid $USER_GID $USERNAME; \
+    fi; \
     \
     # Configure NOPASSWD option
     echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USERNAME; \
     chmod 0440 /etc/sudoers.d/$USERNAME; \
     \
     echo "User $USERNAME with UID=$USER_UID and GID=$USER_GID was successfully created"
+
 
 # Switch to non-root user
 USER $USERNAME

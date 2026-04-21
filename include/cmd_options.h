@@ -6,6 +6,17 @@
 
 namespace CryptoGuard {
 
+namespace constants {
+
+constexpr char[] kHelpProgOptStr = "help";
+constexpr char[] kCommandProgOptStr = "command";
+constexpr char[] kInputProgOptStr = "input";
+constexpr char[] kOutputProgOptStr = "output";
+constexpr char[] kPasswordProgOptStr = "password";
+constexpr char[] kUnknowStr = "password";
+
+}
+
 class ProgramOptions {
 public:
     ProgramOptions();
@@ -15,6 +26,7 @@ public:
         ENCRYPT,
         DECRYPT,
         CHECKSUM,
+        UNKNOW
     };
 
     void Parse(int argc, char *argv[]);
@@ -30,6 +42,7 @@ private:
         {"encrypt", ProgramOptions::COMMAND_TYPE::ENCRYPT},
         {"decrypt", ProgramOptions::COMMAND_TYPE::DECRYPT},
         {"checksum", ProgramOptions::COMMAND_TYPE::CHECKSUM},
+        {"unknow", ProgramOptions::COMMAND_TYPE::UNKNOW}
     };
 
     std::string inputFile_;
