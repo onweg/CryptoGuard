@@ -8,12 +8,12 @@ namespace CryptoGuard {
 
 namespace constants {
 
-constexpr char[] kHelpProgOptStr = "help";
-constexpr char[] kCommandProgOptStr = "command";
-constexpr char[] kInputProgOptStr = "input";
-constexpr char[] kOutputProgOptStr = "output";
-constexpr char[] kPasswordProgOptStr = "password";
-constexpr char[] kUnknowStr = "password";
+constexpr char* kHelpProgOptStr = "help";
+constexpr char* kCommandProgOptStr = "command";
+constexpr char* kInputProgOptStr = "input";
+constexpr char* kOutputProgOptStr = "output";
+constexpr char* kPasswordProgOptStr = "password";
+constexpr char* kUnknownStr = "unknown";
 
 }
 
