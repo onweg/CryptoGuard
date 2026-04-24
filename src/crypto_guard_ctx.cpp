@@ -14,7 +14,7 @@ class CryptoGuardCtx::Impl{
 		std::array<unsigned char, IV_SIZE> iv;    // Initialization vector
 	};
 
-	using EVP_CIPHER_CTX_PTR = std::unique_ptr<EVP_CIPHER_CTX, decltype([](EVP_CIPHER_CTX ctx){ EVP_CIPHER_CTX_free(ctx); })>(EVP_CIPHER_CTX_new(););
+	using EVP_CIPHER_CTX_PTR = std::unique_ptr<EVP_CIPHER_CTX, decltype([](EVP_CIPHER_CTX *ctx){ EVP_CIPHER_CTX_free(ctx); })>;
 
 	Impl() {
         OpenSSL_add_all_algorithms();
@@ -49,12 +49,12 @@ class CryptoGuardCtx::Impl{
 	}
 
 	void EncryptDecryptStream(std::iostream &inStream, std::iostream &outStream, std::string_view password, const bool encryptMode) {
-		if (!inStream || !outStream) {
-			throw std::exception("Stream is invalid");
-		}
 		auto params = CreateChiperParamsFromPassword(password);
         params.encrypt = encryptMode;
-        EVP_CIPHER_CTX_PTR ctx;
+        EVP_CIPHER_CTX_PTR ctx(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);
+		if (!ctx) {
+			throw std::exception("Failed to create EVP_CIPHER_CTX_PTR");
+		}
         EVP_CipherInit_ex(ctx.get(), params.cipher, nullptr, params.key.data(), params.iv.data(), params.encrypt);
         std::vector<unsigned char> outBuf(16 + EVP_MAX_BLOCK_LENGTH);
         std::vector<unsigned char> inBuf(16);
@@ -82,5 +82,9 @@ CryptoGuardCtx::CryptoGuardCtx() :pImpl_(std::make_unique<Impl>()) {
 
 CryptoGuardCtx::~CryptoGuardCtx() {
 }
+
+void CryptoGuardCtx::EncryptFile(std::iostream &inStream, std::iostream &outStream, std::string_view password) { pImpl_->EncryptFile(inStream, outStream, password); }
+void CryptoGuardCtx::DecryptFile(std::iostream &inStream, std::iostream &outStream, std::string_view password) { pImpl_->DecryptFile(inStream, outStream, password); }
+std::string CryptoGuardCtx::CalculateChecksum(std::iostream &inStream) { return pImpl_->CalculateChecksum(inStream); }
 
 }  // namespace CryptoGuard
