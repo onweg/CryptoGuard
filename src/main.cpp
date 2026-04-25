@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
             throw std::runtime_error{"Unsupported command"};
         }
 
-    } catch (const std::exception &e) {
+    } catch (const std:: runtime_error &e) {
         std::print(std::cerr, "Error: {}\n", e.what());
         return 1;
     }
