@@ -50,14 +50,12 @@ TEST(ProgramOptionsTest, ParseCommandChecksum) {
 
 TEST(ProgramOptionsTest, ParseCommandUnknown) {
     std::vector<std::string> args = {
-        "app", "--command", "unknow",
+        "app", "--command", "unknown",
         "--input", "in.txt"
     };
     auto argv = MakeArgv(args);
     ProgramOptions opts;
-    opts.Parse(static_cast<int>(argv.size()) - 1, argv.data());
-
-    EXPECT_EQ(opts.GetCommand(), ProgramOptions::COMMAND_TYPE::UNKNOW);
+    EXPECT_NO_THROW(opts.Parse(static_cast<int>(argv.size()) - 1, argv.data()));
 }
 
 TEST(ProgramOptionsTest, ParseInputFile) {
@@ -136,6 +134,5 @@ TEST(ProgramOptionsTest, InvalidCommandValue) {
     auto argv = MakeArgv(args);
     ProgramOptions opts;
 
-    EXPECT_NO_THROW(opts.Parse(static_cast<int>(argv.size()) - 1, argv.data()));
-    EXPECT_EQ(opts.GetCommand(), ProgramOptions::COMMAND_TYPE::UNKNOW);
+    EXPECT_THROW(opts.Parse(static_cast<int>(argv.size()) - 1, argv.data()));
 }

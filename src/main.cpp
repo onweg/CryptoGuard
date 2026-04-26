@@ -7,28 +7,30 @@
 #include <stdexcept>
 #include <string>
 
+using COMMAND_TYPE = CryptoGuard::ProgramOptions::COMMAND_TYPE;
+
 int main(int argc, char *argv[]) {
     try {
+        CryptoGuard::CryptoGuardCtx cryptoCtx;
         CryptoGuard::ProgramOptions options;
         options.Parse();
-        CryptoGuard::CryptoGuardCtx cryptoCtx;
-
-        using COMMAND_TYPE = CryptoGuard::ProgramOptions::COMMAND_TYPE;
         switch (options.GetCommand()) {
         case COMMAND_TYPE::ENCRYPT:
-            cryptoCtx.EncryptFile(options.GetInputFile, options.GetOutputFile, options.GetPassword);
+            std::fstream ifs(options.GetInputFile(), std::ios::in);
+            std::fstream ofs(options.GetOutputFile(), std::ios::out | std::ios::trunc);
+            cryptoCtx.EncryptFile(ifs, ofs, options.GetPassword);
             std::print("File encoded successfully\n");
             break;
-
         case COMMAND_TYPE::DECRYPT:
-            cryptoCtx.DecryptFile(options.GetInputFile, options.GetOutputFile, options.GetPassword);
+            std::fstream ifs(options.GetInputFile(), std::ios::in);
+            std::fstream ofs(options.GetOutputFile(), std::ios::out | std::ios::trunc);
+            cryptoCtx.DecryptFile(ifs, ofs, options.GetPassword);
             std::print("File decoded successfully\n");
             break;
-
         case COMMAND_TYPE::CHECKSUM:
-            std::print("Checksum: {}\n", cryptoCtx.CalculateChecksum(options.GetInputFile));
+            std::fstream ifs(options.GetInputFile(), std::ios::in);
+            std::print("Checksum: {}\n", cryptoCtx.CalculateChecksum(ifs));
             break;
-
         default:
             throw std::runtime_error{"Unsupported command"};
         }

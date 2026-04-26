@@ -13,7 +13,6 @@ constexpr char* kCommandProgOptStr = "command";
 constexpr char* kInputProgOptStr = "input";
 constexpr char* kOutputProgOptStr = "output";
 constexpr char* kPasswordProgOptStr = "password";
-constexpr char* kUnknownStr = "unknown";
 
 }
 
@@ -25,8 +24,7 @@ public:
     enum class COMMAND_TYPE {
         ENCRYPT,
         DECRYPT,
-        CHECKSUM,
-        UNKNOW
+        CHECKSUM
     };
 
     void Parse(int argc, char *argv[]);
@@ -41,8 +39,7 @@ private:
     const std::unordered_map<std::string_view, COMMAND_TYPE> commandMapping_ = {
         {"encrypt", ProgramOptions::COMMAND_TYPE::ENCRYPT},
         {"decrypt", ProgramOptions::COMMAND_TYPE::DECRYPT},
-        {"checksum", ProgramOptions::COMMAND_TYPE::CHECKSUM},
-        {"unknow", ProgramOptions::COMMAND_TYPE::UNKNOW}
+        {"checksum", ProgramOptions::COMMAND_TYPE::CHECKSUM}
     };
 
     std::string inputFile_;
