@@ -1,5 +1,10 @@
 #include "crypto_guard_ctx.h"
 #include <openssl/evp.h>
+#include <openssl/err.h>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+#include <vector>
 
 namespace CryptoGuard {
 
@@ -20,8 +25,8 @@ class CryptoGuardCtx::Impl{
 		std::array<unsigned char, IV_SIZE> iv;    // Initialization vector
 	};
 
-	using EVP_CIPHER_CTX_PTR = std::unique_ptr<EVP_CIPHER_CTX, decltype([](EVP_CIPHER_CTX ctx){ EVP_CIPHER_CTX_free(ctx); })>;
-	using EVP_MD_CTX_PTR = std::unique_ptr<EVP_MD_CTX, decltype(()[EVP_MD_CTX* ctx]{ EVP_MD_CTX_free(ctx); })>;
+	using EVP_CIPHER_CTX_PTR = std::unique_ptr<EVP_CIPHER_CTX, decltype([](EVP_CIPHER_CTX *ctx){ EVP_CIPHER_CTX_free(ctx); })>;
+	using EVP_MD_CTX_PTR = std::unique_ptr<EVP_MD_CTX, decltype([](EVP_MD_CTX* ctx){ EVP_MD_CTX_free(ctx); })>;
 
 	Impl() {
         OpenSSL_add_all_algorithms();
@@ -48,20 +53,20 @@ class CryptoGuardCtx::Impl{
 		if (!inStream) {
 			throw std::runtime_error("input stream is not good");
 		}
-		ERR_error_clear();
+		ERR_clear_error();
 		EVP_MD_CTX_PTR ctx (EVP_MD_CTX_new());
 		if (!ctx) {
 			CollectErrorStack();
 			throw std:: runtime_error("ctx is invalid");
 		}
-		ERR_error_clear();
+		ERR_clear_error();
 		if (EVP_DigestInit_ex(ctx.get(), EVP_sha256(), nullptr) != 1) {
 			CollectErrorStack();
 			throw std:: runtime_error("Dint init algorithm");
 		}
 		std::vector<unsigned char> inBuf(constants::BLOCK);
 		while (1) {
-			ERR_error_clear();
+			ERR_clear_error();
 			inStream.read(reinterpret_cast<char*>(inBuf.data()), constants::BLOCK);
 			const auto bytesRead = inStream.gcount();
 			if (inStream.bad()) {
@@ -71,7 +76,7 @@ class CryptoGuardCtx::Impl{
 			if (bytesRead == 0) {
 				break;
 			}
-			ERR_error_clear();
+			ERR_clear_error();
 			int result = EVP_DigestUpdate(ctx.get(), inBuf.data(), static_cast<int>(bytesRead));
 			if (!result) {
 				CollectErrorStack();
@@ -80,7 +85,7 @@ class CryptoGuardCtx::Impl{
 		}
 		unsigned char md_value_buf[EVP_MAX_MD_SIZE];
 		unsigned int size_buf, i;
-		ERR_error_clear();
+		ERR_clear_error();
 		if (EVP_DigestFinal_ex(ctx.get(), md_value_buf, &size_buf) != 1) {
 			CollectErrorStack();
 			throw std:: runtime_error("EVP_DigestFinal_ex failed");
@@ -96,7 +101,7 @@ class CryptoGuardCtx::Impl{
     AesCipherParams CreateChiperParamsFromPassword(std::string_view password) {
 		AesCipherParams params;
 		constexpr std::array<unsigned char, 8> salt = {'1', '2', '3', '4', '5', '6', '7', '8'};
-		ERR_error_clear();
+		ERR_clear_error();
 		int result = EVP_BytesToKey(params.cipher, EVP_sha256(), salt.data(),
 									reinterpret_cast<const unsigned char *>(password.data()), password.size(), 1,
 									params.key.data(), params.iv.data());
@@ -110,8 +115,8 @@ class CryptoGuardCtx::Impl{
 	void EncryptDecryptStream(std::iostream &inStream, std::iostream &outStream, std::string_view password, const bool encryptMode) {
 		auto params = CreateChiperParamsFromPassword(password);
         params.encrypt = encryptMode;
-		ERR_error_clear();
-        EVP_CIPHER_CTX_PTR ctx(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);
+		ERR_clear_error();
+        EVP_CIPHER_CTX_PTR ctx(EVP_CIPHER_CTX_new());
 		if (!ctx) {
 			CollectErrorStack();
 			throw std::runtime_error("Failed to create EVP_CIPHER_CTX_PTR");
@@ -121,7 +126,7 @@ class CryptoGuardCtx::Impl{
         std::vector<unsigned char> inBuf(constants::BLOCK);
         int outLen;
 		while (1) {
-			ERR_error_clear();
+			ERR_clear_error();
 			inStream.read(reinterpret_cast<char*>(inBuf.data()), constants::BLOCK);
 			const auto bytesRead = inStream.gcount();
 			if (inStream.bad()) {
@@ -131,53 +136,50 @@ class CryptoGuardCtx::Impl{
 			if (!bytesRead) {
 				break;
 			}
-			ERR_error_clear();
+			ERR_clear_error();
 			int result = EVP_CipherUpdate(ctx.get(), outBuf.data(), &outLen, inBuf.data(),  static_cast<int>(bytesRead));
 			if (!result) {
 				CollectErrorStack();
-				throw std:: runtime_error("chipper error");
+				throw std::runtime_error("chipper error");
 			}
-			if (!(outLen >=0 && outLen <= static_cast<int>(outBuf.count()))) {
+			if (!(outLen >=0 && outLen <= static_cast<int>(outBuf.size()))) {
 				CollectErrorStack();
-				throw std:: runtime_error("couldnt do EVP_CipherUpdate");
+				throw std::runtime_error("couldnt do EVP_CipherUpdate");
 			}
-			outStream.write(reinterpret_cast<char*>(outBuf), outLen);
+			outStream.write(reinterpret_cast<char*>(outBuf.data()), outLen);
 			if (!outStream) {
 				CollectErrorStack();
-				throw std:: runtime_error("write error");
+				throw std::runtime_error("write error");
 			}
 		}
-		ERR_error_clear();
+		ERR_clear_error();
         int result = EVP_CipherFinal_ex(ctx.get(), outBuf.data(), &outLen);
 		if (!result) {
 			CollectErrorStack();
-			throw std:: runtime_error("final error");
+			throw std::runtime_error("final error");
 		}
 		if (outLen > 0) {
-			outStream.write(reinterpret_cast<char*>(outBuf), outLen);
+			outStream.write(reinterpret_cast<char*>(outBuf.data()), outLen);
 		}
-        std::print("String {} successfully. Result: '{}'\n\n", encryptMode == 1 ? "encrypt" : "decrypt", output);
+        std::cout << "String " << (encryptMode ? "encrypt" : "decrypt") << " successfully.\n";
 	}
 	void CollectErrorStack() {
 		std::string out;
 		char buf[256];
 		unsigned long err;
-		while((err = ERR_get_error) != 0) {
+		while((err = ERR_get_error()) != 0) {
 			ERR_error_string_n(err, buf, sizeof(buf));
-			if (!buf.empty()) {
+			if (buf[0] != '\0') {
 				out += "->";
 			}
 			out += buf;
 		}
 	}
-}
-
-CryptoGuardCtx::CryptoGuardCtx() :pImpl_(std::make_unique<Impl>()) {
-}
-
-CryptoGuardCtx::~CryptoGuardCtx() {
-}
-
+};
+CryptoGuardCtx::CryptoGuardCtx() : pImpl_(std::make_unique<Impl>()) {}
+CryptoGuardCtx::~CryptoGuardCtx() = default;
+CryptoGuardCtx::CryptoGuardCtx(CryptoGuardCtx &&) noexcept = default;
+CryptoGuardCtx &CryptoGuardCtx::operator=(CryptoGuardCtx &&) noexcept = default;
 void CryptoGuardCtx::EncryptFile(std::iostream &inStream, std::iostream &outStream, std::string_view password) { pImpl_->EncryptFile(inStream, outStream, password); }
 void CryptoGuardCtx::DecryptFile(std::iostream &inStream, std::iostream &outStream, std::string_view password) { pImpl_->DecryptFile(inStream, outStream, password); }
 std::string CryptoGuardCtx::CalculateChecksum(std::iostream &inStream) { return pImpl_->CalculateChecksum(inStream); }

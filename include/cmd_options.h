@@ -8,11 +8,11 @@ namespace CryptoGuard {
 
 namespace constants {
 
-constexpr char* kHelpProgOptStr = "help";
-constexpr char* kCommandProgOptStr = "command";
-constexpr char* kInputProgOptStr = "input";
-constexpr char* kOutputProgOptStr = "output";
-constexpr char* kPasswordProgOptStr = "password";
+constexpr const char* kHelpProgOptStr = "help";
+constexpr const char* kCommandProgOptStr = "command";
+constexpr const char* kInputProgOptStr = "input";
+constexpr const char* kOutputProgOptStr = "output";
+constexpr const char* kPasswordProgOptStr = "password";
 
 }
 
